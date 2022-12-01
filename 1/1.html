@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <canvas
+      id="canvas"
+      style="background-color: aqua"
+      width="500px"
+      height="500px"
+    ></canvas>
+  </body>
+</html>
+
+
+<!-- gl_Position = vec4(0.0,0.0,0.0,1); -->
+<script id="vertexShader" type="x-shader/x-vertex">
+  attribute vec4 a_Position;
+  attribute float a_PosiSize;
+  void main(){
+    gl_Position = a_Position;
+    gl_PointSize = a_PosiSize;
+  }
+</script>
+
+<script id="fragmentShader" type="x-shader/x-fragment">
+  precision highp float;
+  uniform vec4 a_FragColor;
+  void main(){
+    float r = distance(gl_PointCoord,vec2(0.5,0.5));
+    if(r>0.5){
+      discard;
+    }else{
+      gl_FragColor=a_FragColor;    
+    }
+  }
+</script>
+<script>
+  const Arr = []
+  /** @type {HTMLCanvasElement} */
+  const canvas = document.getElementById('canvas')
+  const gl = canvas.getContext('webgl')
+  const vertexShader = $('#vertexShader').innerText
+  const fragmentShader = $('#fragmentShader').innerText
+  const shaderProgram = initShaders(gl, vertexShader, fragmentShader)
+  const a_Position = gl.getAttribLocation(gl.program,"a_Position")
+  const a_PosiSize = gl.getAttribLocation(gl.program,"a_PosiSize")
+  const a_FragColor = gl.getUniformLocation(gl.program,"a_FragColor")
+  render()
+  function $(tag) {
+    return document.querySelector(tag)
+  }
+  function initShaders(gl, vertexShader, fragmentShader) {
+    const vShader = loadShader(gl, gl.VERTEX_SHADER, vertexShader)
+    const fShader = loadShader(gl, gl.FRAGMENT_SHADER, fragmentShader)
+    const program = gl.createProgram();
+    gl.attachShader(program, vShader);
+    gl.attachShader(program, fShader);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+    gl.program = program;
+    return program
+  }
+  function loadShader(gl, type, source) {
+    const shader = gl.createShader(type)
+    gl.shaderSource(shader, source)
+    gl.compileShader(shader)
+    return shader
+  }
+
+  canvas.addEventListener('click',(e)=>{
+    const {clientX,clientY} = e
+    const {left,top,width,height} = canvas.getBoundingClientRect()
+    const [w,h] = [clientX-left,clientY-top];
+    const [hlefH,hlefW] = [height/2,width/2];
+    const [x,y] =[(w - hlefW)/hlefW,(hlefH-h)/hlefH]
+    const size = Math.random()*30 + 20
+    const r = Math.random()
+    const g = Math.random()
+    const b = Math.random()
+    const color ={r,g,b,a:1}
+    Arr.push({x,y,size,color})
+    render()
+  })
+  function render(){
+    gl.clearColor(0.0, 0.0, 0.0, 1.0)
+    Arr.forEach(element => {
+      let {x,y,size,color:{r,g,b,a}} =  element
+      gl.vertexAttrib3f(a_Position,x,y,0)
+      gl.vertexAttrib1f(a_PosiSize,size)
+      gl.uniform4f(a_FragColor,r,g,b,a)
+      gl.drawArrays(gl.POINTS,0,1)
+    });
+  }
+</script>
